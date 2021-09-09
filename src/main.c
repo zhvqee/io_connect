@@ -1,6 +1,12 @@
 #include <stdio.h>
 
+#include "nio/callback.h"
+
+void *testAccept(void *arg) {
+    printf("current socketId %d", (int *) arg);
+}
+
 int main() {
-    printf("Hello, World!\n");
-    return 0;
+    afterAccept(testAccept, 4);
+    afterAccept(NULL,5);
 }

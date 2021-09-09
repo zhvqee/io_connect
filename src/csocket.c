@@ -40,8 +40,6 @@ int createNoBlockSocket(int port, int backlog) {
     return serverSocket;
 }
 
-int accept(int serverSocket,struct  sockaddr_storage* storage,socklen_t* len){
 
-}
 
 

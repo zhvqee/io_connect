@@ -10,7 +10,7 @@ LOG loging;
 
 const static char LogLevelText[4][10]={"INFO","DEBUG","WARN","ERROR"};
 
-static char * getdate(char *date);
+static char * getDate(char *date);
 
 static unsigned char getcode(char *path){
     unsigned char code=255;
@@ -35,7 +35,7 @@ static unsigned char ReadConfig(char *path){
     if(fpath==NULL)
         return -1;
     fscanf(fpath,"path=%s\n",value);
-    getdate(data);
+    getDate(data);
     strcat(data,".log");
     strcat(value,"/");
     strcat(value,data);
@@ -70,7 +70,7 @@ static LOGSET *getlogset(){
 /*
  *获取日期
  * */
-static char * getdate(char *date){
+static char * getDate(char *date){
     time_t timer=time(NULL);
     strftime(date,11,"%Y-%m-%d",localtime(&timer));
     return date;
@@ -133,7 +133,7 @@ static int initlog(unsigned char loglevel){
         char *path=getenv("HOME");
         memcpy(logsetting->filepath,path,strlen(path));
 
-        getdate(strdate);
+        getDate(strdate);
         strcat(strdate,".log");
         strcat(logsetting->filepath,"/");
         strcat(logsetting->filepath,strdate);
