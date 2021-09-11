@@ -43,6 +43,6 @@ typedef struct logseting {
     unsigned char loglevel;
 } LOGSET;
 
-int log(unsigned char loglevel, char *fromat, ...);
+int io_log(unsigned char loglevel, char *fromat, ...);
 
 #endif //IO_CONNECT_LOG_H

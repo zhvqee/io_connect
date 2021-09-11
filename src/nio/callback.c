@@ -4,14 +4,12 @@
 
 #include "callback.h"
 #include "../logs/log.h"
-#include "default.h"
 
 void *afterAccept(callback cb, socket_fd_t fd) {
-    log(INFO, "afterAccept method invoke");
+    io_log(INFO, "afterAccept method invoke");
     if (cb) {
         return cb((void *) fd);
     }
-    return defaultAfterAccept(fd);
 }
 
 

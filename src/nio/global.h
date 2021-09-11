@@ -3,12 +3,10 @@
 //
 
 #ifndef IO_CONNECT_GLOBAL_H
+
 #define IO_CONNECT_GLOBAL_H
 
-struct EventDispatcher *eventDispatcher;
-
-struct ChannelMap *channelMap;
-
+void makeSocketNoBlock(int socketfd);
 
 #endif //IO_CONNECT_GLOBAL_H
 

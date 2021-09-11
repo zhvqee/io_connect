@@ -6,15 +6,18 @@
 #define IO_CONNECT_EVENT_H
 
 #include <pthread.h>
-#include <time.h>
+#include <sys/time.h>
 
 #define  NIO_EVENT_READ  1
 #define  NIO_EVENT_WRITE 2
 
+extern const struct EventDispatcher kqueueDispatcher;
 
-typedef int (*callbackWriteHandler)(void *);
 
-typedef int (*callbackReadHandler)(void *);
+typedef int (*CallbackWriteHandler)(void *);
+
+typedef int (*CallbackReadHandler)(void *);
+
 
 typedef struct Channel {
     /**
@@ -36,28 +39,28 @@ typedef struct Channel {
     /**
      * 读回调
      */
-    callbackReadHandler readHandler;
+    CallbackWriteHandler readHandler;
 
     /**
      * 写回调
      */
-    callbackReadHandler writeHandler;
+    CallbackWriteHandler writeHandler;
 
 } Channel;
 
 typedef struct ChannelMap {
 
-    void *channels;
+    struct Channel **channels;
 
     int size;
 
 } ChannelMap;
 
-struct ChannelNode {
-    int channelType;
+typedef struct ChannelNode {
+    int opType;
     struct Channel *data;
     struct ChannelNode *next;
-};
+} ChannelNode;
 
 //向前申明
 struct NioEventLoop;
@@ -65,7 +68,7 @@ struct NioEventLoop;
 /**
  * 事件派发器
  */
-struct EventDispatcher {
+typedef struct EventDispatcher {
 
     /**
      * 派发器的实现名，可以指定
@@ -76,7 +79,7 @@ struct EventDispatcher {
      * 初始化
      * @param eventLoop
      */
-    void (*init)(struct NioEventLoop *eventLoop);
+    void *(*init)(struct NioEventLoop *eventLoop);
 
     /**
      * 添加一个channel
@@ -110,16 +113,15 @@ struct EventDispatcher {
      * 派发事件， 如果有IO事件就进行派发处理，否则阻塞
      * @param eventLoop
      */
-    void (*dispatch)(struct NioEventLoop *eventLoop, struct timeval *timeval);
+    int (*dispatch)(struct NioEventLoop *eventLoop, struct timeval *timeval);
 
-};
+} EventDispatcher;
 
 
 /**
  * IO线程执行loop, 线程ownerThreadId 处理链表head,到tail的内容
  */
-struct NioEventLoop {
-    int size;
+typedef struct NioEventLoop {
     /**
      * 是否停止
      */
@@ -154,7 +156,7 @@ struct NioEventLoop {
     /**
    * 参数的数据
    */
-    void *data;
+    void *dispatchData;
 
 
     //channel list
@@ -167,7 +169,46 @@ struct NioEventLoop {
      */
     const struct EventDispatcher *eventDispatcher;
 
-};
+} NioEventLoop;
 
+
+/**
+ * 初始化init
+ * @param threadName
+ * @return
+ */
+NioEventLoop *initNioEventLoop(char *threadName);
+
+/**
+ * 添加一个channel 到eventloop
+ * @param nioEventLoop
+ * @param channel
+ */
+void addNioEventLoopChannelEvent(struct NioEventLoop *nioEventLoop, Channel *channel);
+
+/**
+ * 创建一个channel ，通过 socket fd ，主要进行封装
+ * @param fd
+ * @param events
+ * @param callbackReadHandler
+ * @param callbackWriteHandler
+ * @param data
+ * @return
+ */
+Channel *initChannel(int fd,
+                     int events,
+                     CallbackReadHandler callbackReadHandler,
+                     CallbackWriteHandler callbackWriteHandler,
+                     void *data);
+
+/**
+ * 当前fd 套接字触发 可读，可写时间
+ * @param nioEventLoop
+ * @param fd
+ * @param events
+ */
+void channelEventActivate(NioEventLoop *nioEventLoop, int fd, int events);
+
+void nioEventLoopRun(struct NioEventLoop *nioEventLoop);
 
 #endif //IO_CONNECT_EVENT_H

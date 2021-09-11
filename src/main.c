@@ -1,12 +1,14 @@
 #include <stdio.h>
 
-#include "nio/callback.h"
+#include "nio/acceptor.h"
+#include "nio/entry/NioServer.h"
 
-void *testAccept(void *arg) {
-    printf("current socketId %d", (int *) arg);
-}
+
+#define  SERVER_PORT  8888
 
 int main() {
-    afterAccept(testAccept, 4);
-    afterAccept(NULL,5);
+
+    struct NioServer nioServer;
+
+    initNioServer(&nioServer, SERVER_PORT);
 }

@@ -3,8 +3,5 @@ project(io_connect C)
 
 set(CMAKE_C_STANDARD 99)
 
-<<<<<<< HEAD
-add_executable(io_connect main.c csocket.h csocket.c logs/log.c logs/log.h nio/callback.c nio/callback.h nio/default.h)
-=======
-add_executable(io_connect main.c csocket.h csocket.c logs/log.c logs/log.h event.h event.c kqueuedispatch.c global.h)
->>>>>>> 4afb50bdc812ffcf19ee1db52d09efc8f212183e
+
+add_executable(io_connect main.c logs/log.c logs/log.h  nio/callback.c nio/callback.h nio/event.h nio/event.c kqueuedispatch.c nio/global.h nio/acceptor.c nio/acceptor.h nio/global.c nio/global.h nio/entry/NioServer.c nio/entry/NioServer.h thread/thread.c thread/thread.h)
