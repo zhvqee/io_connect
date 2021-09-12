@@ -7,6 +7,7 @@
 #include "pthread.h"
 #include "../logs/log.h"
 #include "global.h"
+#include <sys/socket.h>
 
 static ChannelMap *initChannelMap();
 
@@ -24,6 +25,10 @@ static void nioEventLoopHandleChannels(struct NioEventLoop *nioEventLoop);
 static void nioChannelPendingHandlerAdd(struct NioEventLoop *nioEventLoop, struct Channel *channel);
 
 static int makeSpaceChannelMap(struct ChannelMap *channelMap, int fd);
+
+static void wakeupEventLoopThread(struct NioEventLoop *nioEventLoop);
+
+static void wakeupEventLoopHandle(struct NioEventLoop *nioEventLoop);
 
 NioEventLoop *initNioEventLoop(char *threadName) {
     NioEventLoop *nioEventLoop = (NioEventLoop *) malloc(sizeof(NioEventLoop));
@@ -43,6 +48,12 @@ NioEventLoop *initNioEventLoop(char *threadName) {
 
     nioEventLoop->eventDispatcher = initEventDispatcher(nioEventLoop);
 
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, nioEventLoop->socketPair) < 0) {
+        io_log(ERROR, "socketpair set fialed");
+    }
+    Channel *channel = initChannel(nioEventLoop->socketPair[1], NIO_EVENT_READ, wakeupEventLoopHandle, NULL,
+                                   nioEventLoop);
+    addNioEventLoopChannelEvent(nioEventLoop, channel);
     return nioEventLoop;
 }
 
@@ -88,7 +99,18 @@ void channelEventActivate(NioEventLoop *nioEventLoop, int fd, int events) {
     }
 }
 
-
+/**
+ *
+ * 这个方法 在添加channel 时，是在acceptor 线上上调用，
+ * 1) 如果是 listenfd  刚好是在 acceptor 上的 eventdispatcher
+ * 2) 如果是 clientId 则调用nioEventLoop 是某个worker eventLoop, 而这个eventLoop 线程不是accetor 线程。
+ *   2.1 所以可能该线程阻塞在dispatch 上，或者在执行其他任务，都需要唤醒它
+ *
+ * @param nioEventLoop
+ * @param fd
+ * @param channel
+ * @param type
+ */
 static void nioEventLoopDoChannelEvent(NioEventLoop *nioEventLoop,
                                        int fd,
                                        Channel *channel,
@@ -109,12 +131,31 @@ static void nioEventLoopDoChannelEvent(NioEventLoop *nioEventLoop,
     //release the lock
     pthread_mutex_unlock(&nioEventLoop->mutex);
 
-    /* if (!isInSameThread(eventLoop)) {
-         event_loop_wakeup(eventLoop);
-     } else {
-         event_loop_handle_pending_channel(eventLoop);
-     }*/
-    nioEventLoopHandleChannels(nioEventLoop);
+
+    if (nioEventLoop->ownerThreadId != pthread_self()) {
+        wakeupEventLoopThread(nioEventLoop);
+    } else {
+        nioEventLoopHandleChannels(nioEventLoop);
+    }
+}
+
+/**
+ * 随便发送一个字符给 阻塞在 epoll上的fd，那么epoll函数必定返回。但是需要去消费这个
+ */
+static void wakeupEventLoopThread(struct NioEventLoop *nioEventLoop) {
+    char one = 'a';
+    ssize_t n = write(nioEventLoop->socketPair[0], &one, sizeof(one));
+    if (n != sizeof(one)) {
+        io_log(ERROR, "wakeup event loop thread failed");
+    }
+}
+
+static void wakeupEventLoopHandle(struct NioEventLoop *nioEventLoop) {
+    char one = 'a';
+    ssize_t n = read(nioEventLoop->socketPair[1], &one, sizeof(one));
+    if (n != sizeof(one)) {
+        io_log(ERROR, "read wakeup event loop thread failed");
+    }
 }
 
 
@@ -153,7 +194,6 @@ static void *initEventDispatcher(NioEventLoop *nioEventLoop) {
  */
 static void nioEventLoopHandleChannels(struct NioEventLoop *nioEventLoop) {
     pthread_mutex_lock(&nioEventLoop->mutex);
-
 
     //循环处理
     struct ChannelNode *p = nioEventLoop->head;
@@ -209,7 +249,7 @@ static int makeSpaceChannelMap(struct ChannelMap *channelMap, int fd) {
 }
 
 
-void nioEventLoopRun(struct NioEventLoop *nioEventLoop) {
+void nioEventLoopRun(struct NioEventLoop *nioEventLoop, int timed) {
     assert(nioEventLoop);
 
     if (nioEventLoop->ownerThreadId != pthread_self()) {
@@ -221,8 +261,8 @@ void nioEventLoopRun(struct NioEventLoop *nioEventLoop) {
 
     struct timeval timeval;
     timeval.tv_sec = 1;
-    while (nioEventLoop->quit != 0) {
-        eventDispatcher->dispatch(nioEventLoop, &timeval);
+    while (nioEventLoop->quit == 0) {
+        eventDispatcher->dispatch(nioEventLoop, timed ? &timeval : NULL);
         nioEventLoopHandleChannels(nioEventLoop);
     }
 }

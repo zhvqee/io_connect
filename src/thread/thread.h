@@ -12,7 +12,7 @@ typedef struct Runnable {
     void *threadData;
 
     void *(*run)(void *);
-}Runnable;
+} Runnable;
 
 typedef struct ThreadLoop {
 
@@ -43,9 +43,13 @@ typedef struct ThreadPool {
      */
     ThreadLoop *threadLoops;
 
+    void (*submit)(Runnable *runnable);
+
 } ThreadPool;
 
 ThreadPool *beginThreadPool(int threadNumber, char *threadName);
+
+void submit(Runnable *runnable);
 
 
 #endif //IO_CONNECT_THREAD_H

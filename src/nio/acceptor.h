@@ -36,7 +36,7 @@ typedef struct Acceptor {
 } Acceptor;
 
 
-Acceptor *initAcceptor(int port);
+Acceptor *initAcceptor(int port,void *args);
 
 void acceptEvent(Acceptor *);
 

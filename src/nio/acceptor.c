@@ -4,10 +4,14 @@
 
 #include "acceptor.h"
 #include "event.h"
+#include "entry/NioServer.h"
+#include "channel.h"
 
 #define ACCEPTOR_THREAD_NAME "main-acceptor-thread"
 
-Acceptor *initAcceptor(int port) {
+static int acceptReadHandle(void *args);
+
+Acceptor *initAcceptor(int port, void *args) {
     Acceptor *acceptor = (Acceptor *) malloc(sizeof(Acceptor));
     acceptor->listenPort = port;
 
@@ -36,17 +40,41 @@ Acceptor *initAcceptor(int port) {
     }
 
 
-    // 初始化 event_loop;
+    // 初始化 event_loop thread
     acceptor->nioEventLoop = initNioEventLoop(ACCEPTOR_THREAD_NAME);
 
 
     //初始化完后，需要构建listenfd 的channel 通道，并注册到nioeventLoop 中
-    Channel *channel = initChannel(acceptor->listenfd, NIO_EVENT_READ, NULL, NULL, NULL);
+    Channel *channel = initChannel(acceptor->listenfd, NIO_EVENT_READ, acceptReadHandle, NULL, args);
     addNioEventLoopChannelEvent(acceptor->nioEventLoop, channel);
 
     return acceptor;
 }
 
+
 void acceptEvent(struct Acceptor *acceptor) {
-    nioEventLoopRun(acceptor->nioEventLoop);
+    nioEventLoopRun(acceptor->nioEventLoop, 0);
+}
+
+/**
+ * 实际接收连接
+ * @param args
+ * @return
+ */
+static int acceptReadHandle(void *args) {
+    struct NioServer *nioServer = (struct NioServer *) args;
+    Acceptor *acceptor = nioServer->acceptor;
+    int listenfd = acceptor->listenfd;
+
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    int clientFd = accept(listenfd, (struct sockaddr *) &client_addr, &client_len);
+    makeSocketNoBlock(clientFd);
+
+    NioEventLoop *workNioEventLoop = selectSubReactorWorkEventLoop(nioServer->subReactor);
+    Channel *clientChannel = initChannel(clientFd, NIO_EVENT_READ | NIO_EVENT_WRITE, readChannel, writeChannel,
+                                         workNioEventLoop);
+    // 添加客户端连接到 workNioEventLoop
+    addNioEventLoopChannelEvent(workNioEventLoop, clientChannel);
+    return 0;
 }

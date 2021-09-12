@@ -6,6 +6,7 @@
 #define IO_CONNECT_NIOSERVER_H
 
 #include "../acceptor.h"
+#include "../subreactor.h"
 
 /**
  * 入口，存储了全局变量
@@ -13,7 +14,7 @@
 typedef struct NioServer {
     struct Acceptor *acceptor;
 
-    struct ThreadPool *threadPool;
+    struct SubReactor *subReactor;
 
 } NioServer;
 

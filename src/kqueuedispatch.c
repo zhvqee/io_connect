@@ -30,15 +30,17 @@ const struct EventDispatcher kqueueDispatcher = {
         kqueueAdd,
         kqueueDel,
         kqueueUpdate,
-        kqueueDispatch,
         kqueueClear,
+        kqueueDispatch,
 };
 
 
 typedef struct KqueueData {
-    int fd;
-    struct kevent *kevent;
+    int kfd;
+    struct kevent *listenEvent;
+    struct kevent *triggerEvent;
     int size;
+    int position;
 } KqueueData;
 
 /**
@@ -48,22 +50,34 @@ typedef struct KqueueData {
 void *kqueueInit(struct NioEventLoop *eventLoop) {
     int fd = kqueue();
     struct KqueueData *kqueueData = (KqueueData *) malloc(sizeof(struct KqueueData));
-    kqueueData->fd = fd;
-    kqueueData->kevent = calloc(128, sizeof(struct kevent));
+    kqueueData->kfd = fd;
+
+    kqueueData->triggerEvent = calloc(128, sizeof(struct kevent));
+    kqueueData->listenEvent = calloc(128, sizeof(struct kevent));
+
     kqueueData->size = 128;
+    kqueueData->position = 0;
     return kqueueData;
 }
 
-
+/**
+ * 把当前的channel 填到 kqueue
+ * @param eventLoop
+ * @param channel
+ */
 void kqueueAdd(struct NioEventLoop *eventLoop, struct Channel *channel) {
     KqueueData *kqueueData = eventLoop->dispatchData;
-
+    if (kqueueData->position >= kqueueData->size) {
+        return;
+    }
+    struct kevent *target = &kqueueData->listenEvent[kqueueData->position];
+    kqueueData->position++;
     if (channel->events & NIO_EVENT_READ) {
-        EV_SET(kqueueData->kevent, kqueueData->fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+        EV_SET(target, channel->fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
 
     }
     if (channel->events & NIO_EVENT_WRITE) {
-        EV_SET(kqueueData->kevent, kqueueData->fd, EVFILT_WRITE, EV_ADD, 0, 0, NULL);
+        EV_SET(target, channel->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, 0);
     }
 
 }
@@ -105,19 +119,21 @@ int kqueueDispatch(struct NioEventLoop *eventLoop, struct timeval *timeval) {
         struct timespec timespec;
         timespec.tv_sec = timeval->tv_sec;
         timespec.tv_nsec = timeval->tv_usec * 1000;
-        retVal = kevent(kqueueData->fd, NULL, 0, kqueueData->kevent, kqueueData->size, &timespec);
+        retVal = kevent(kqueueData->kfd, kqueueData->listenEvent, kqueueData->position, kqueueData->triggerEvent,
+                        kqueueData->size, &timespec);
     } else {
-        retVal = kevent(kqueueData->fd, NULL, 0, kqueueData->kevent, kqueueData->size, NULL);
+        retVal = kevent(kqueueData->kfd, kqueueData->listenEvent, kqueueData->position, kqueueData->triggerEvent,
+                        kqueueData->size, NULL);
     }
 
 
-    struct kevent *e = kqueueData->kevent;
+    struct kevent *e = kqueueData->triggerEvent;
 
     for (int i = 0; i < retVal; i++) {
 
         if (e[i].filter == EVFILT_EXCEPT) {
             fprintf(stderr, "epoll error\n");
-            close(kqueueData->kevent[i].ident);
+            close(kqueueData->triggerEvent[i].ident);
             continue;
         }
 
@@ -126,7 +142,6 @@ int kqueueDispatch(struct NioEventLoop *eventLoop, struct timeval *timeval) {
         }
         if (e[i].filter == EVFILT_WRITE) {
             channelEventActivate(eventLoop, e[i].ident, NIO_EVENT_WRITE);
-
         }
     }
 

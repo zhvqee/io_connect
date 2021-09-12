@@ -169,6 +169,8 @@ typedef struct NioEventLoop {
      */
     const struct EventDispatcher *eventDispatcher;
 
+    int socketPair[2];
+
 } NioEventLoop;
 
 
@@ -209,6 +211,6 @@ Channel *initChannel(int fd,
  */
 void channelEventActivate(NioEventLoop *nioEventLoop, int fd, int events);
 
-void nioEventLoopRun(struct NioEventLoop *nioEventLoop);
+void nioEventLoopRun(struct NioEventLoop *nioEventLoop, int timed);
 
 #endif //IO_CONNECT_EVENT_H

@@ -7,10 +7,12 @@
 
 void initNioServer(struct NioServer *nioServer, int listenPort) {
 
-    struct Acceptor *acceptor = initAcceptor(listenPort);
+    struct SubReactor *subReactor = initSubReactor();
+    struct Acceptor *acceptor = initAcceptor(listenPort, nioServer);
+
     nioServer->acceptor = acceptor;
-    int enableCPUNum = sysconf(_SC_NPROCESSORS_ONLN);
-    nioServer->threadPool = beginThreadPool(enableCPUNum * 2, "nio-server-thread");
+    nioServer->subReactor = subReactor;
+
     // 开始接受 socket 连接
     acceptEvent(acceptor);
 

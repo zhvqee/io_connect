@@ -27,6 +27,11 @@ ThreadPool *beginThreadPool(int threadNumber, char *threadName) {
     return threadPool;
 }
 
+void submit(Runnable *runnable) {
+
+}
+
+
 static ThreadPool *createThreadPool(int threadNumber, char *threadName) {
     struct ThreadPool *threadPool = (ThreadPool *) malloc(sizeof(ThreadPool));
     threadPool->position = 0;
@@ -34,6 +39,7 @@ static ThreadPool *createThreadPool(int threadNumber, char *threadName) {
     threadPool->threadNumber = threadNumber;
     threadPool->threadGroupName = threadName;
     threadPool->threadLoops = NULL;
+    threadPool->submit = submit;
     return threadPool;
 }
 
