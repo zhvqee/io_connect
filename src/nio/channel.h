@@ -6,9 +6,10 @@
 #define IO_CONNECT_CHANNEL_H
 
 #include "event.h"
+#include "sys/socket.h"
 
-int readChannel(Channel *channel);
+int readChannel(void *args);
 
-int writeChannel(struct Channel *channel);
+int writeChannel(void *args);
 
 #endif //IO_CONNECT_CHANNEL_H

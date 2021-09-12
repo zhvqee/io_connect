@@ -72,8 +72,8 @@ static int acceptReadHandle(void *args) {
     makeSocketNoBlock(clientFd);
 
     NioEventLoop *workNioEventLoop = selectSubReactorWorkEventLoop(nioServer->subReactor);
-    Channel *clientChannel = initChannel(clientFd, NIO_EVENT_READ | NIO_EVENT_WRITE, readChannel, writeChannel,
-                                         workNioEventLoop);
+    //目前只注册可读，当需要写时，在注册，否则 tcp 缓存区发送缓冲区有空，就会触发可写时间，epoll返回
+    Channel *clientChannel = initChannel(clientFd, NIO_EVENT_READ, readChannel, writeChannel, (void *) clientFd);
     // 添加客户端连接到 workNioEventLoop
     addNioEventLoopChannelEvent(workNioEventLoop, clientChannel);
     return 0;

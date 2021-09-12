@@ -38,7 +38,7 @@ SubReactor *initSubReactor() {
 static void *initWorkerEventLoop(void *args) {
     NioEventLoop *nioEventLoop = (NioEventLoop *) args;
     nioEventLoop->ownerThreadId = pthread_self();
-    nioEventLoopRun(nioEventLoop, 1);
+    nioEventLoopRun(nioEventLoop, 0);
 }
 
 /**

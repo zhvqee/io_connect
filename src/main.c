@@ -9,6 +9,6 @@
 int main() {
 
     struct NioServer nioServer;
-
+    printf("123\n");
     initNioServer(&nioServer, SERVER_PORT);
 }
