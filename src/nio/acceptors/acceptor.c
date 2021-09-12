@@ -3,9 +3,9 @@
 //
 
 #include "acceptor.h"
-#include "event.h"
-#include "entry/NioServer.h"
-#include "channel.h"
+#include "../events/event.h"
+#include "../entry/NioServer.h"
+#include "../channels/channel.h"
 
 #define ACCEPTOR_THREAD_NAME "main-acceptor-thread"
 

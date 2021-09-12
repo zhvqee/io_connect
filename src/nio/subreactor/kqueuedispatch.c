@@ -3,13 +3,13 @@
 //
 
 #include <stdio.h>
-#include "nio/event.h"
+#include "../events/event.h"
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
 #include "stdlib.h"
-#include "nio/global.h"
-#include "nio/event.h"
+#include "../global/global.h"
+#include "../events/event.h"
 #include "unistd.h"
 
 static void *kqueueInit(struct NioEventLoop *eventLoop);

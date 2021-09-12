@@ -5,7 +5,7 @@
 #ifndef IO_CONNECT_SUBREACTOR_H
 #define IO_CONNECT_SUBREACTOR_H
 
-#include "event.h"
+#include "../events/event.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "pthread.h"

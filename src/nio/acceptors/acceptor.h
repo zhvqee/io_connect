@@ -9,11 +9,11 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include "../logs/log.h"
+#include "../../logs/log.h"
 #include <strings.h>
-#include "global.h"
-#include "event.h"
-#include "../thread/thread.h"
+#include "../global/global.h"
+#include "../events/event.h"
+#include "../../thread/thread.h"
 #include "assert.h"
 
 #define    LISTENQ        1024

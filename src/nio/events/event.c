@@ -5,8 +5,8 @@
 #include "event.h"
 #include "assert.h"
 #include "pthread.h"
-#include "../logs/log.h"
-#include "global.h"
+#include "../../logs/log.h"
+#include "../global/global.h"
 #include <sys/socket.h>
 
 static ChannelMap *initChannelMap();
